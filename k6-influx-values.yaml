@@ -1,0 +1,43 @@
+serviceAccount:
+  create: false
+
+## Persist data to a persistent volume
+persistence:
+  enabled: true
+  storageClass: efs-sc
+  annotations:
+  accessMode: ReadWriteOnce
+  size: 50Gi
+
+## Configure resource requests and limits
+## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+resources:
+  requests:
+    memory: 1792Mi
+    cpu: 1000m
+  limits:
+    memory: 1792Mi
+    cpu: 10000m
+
+## The InfluxDB image uses several environment variables to automatically
+## configure certain parts of the server.
+## Ref: https://hub.docker.com/_/influxdb/
+env:
+  - name: INFLUXDB_HTTP_AUTH_ENABLED #Enables http authentication. Although not needed its required for init script inside infludb docker image to work properly
+    value: 'true'
+  - name: INFLUXDB_ADMIN_USER #Admin user created by init script
+    value: k6admin
+  - name: INFLUXDB_USER #User created by init script. Has full permissions for the INFLUXDB_DB database
+    value: k6user
+  - name: INFLUXDB_WRITE_USER #write user created by init script. Has write permissions for the INFLUXDB_DB database
+    value: k6writeuser
+  - name: INFLUXDB_READ_USER #Read user created by init script. Has read permissions for the INFLUXDB_DB database
+    value: k6readuser
+  - name: INFLUXDB_DB #Database created by the init script.
+    value: k6results
+
+## The name of a secret in the same kubernetes namespace which contain values
+## to be added to the environment.
+## This can be used, for example, to set the INFLUXDB_HTTP_SHARED_SECRET
+## environment variable.
+envFromSecret: 'influxdb-creds'

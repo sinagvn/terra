@@ -1,0 +1,61 @@
+ngress:
+  enabled: true
+  # For Kubernetes >= 1.18 you should specify the ingress-controller via the field ingressClassName
+  # See https://kubernetes.io/blog/2020/04/02/improvements-to-the-ingress-api-in-kubernetes-1.18/#specifying-the-class-of-an-ingress
+  # ingressClassName: nginx
+  # Values can be templated
+  annotations: 
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+
+  labels: {}
+  path: /grafana/*
+
+  # pathType is only for k8s >= 1.1=
+  pathType: ImplementationSpecific
+
+  hosts: []
+
+## Enable persistence using Persistent Volume Claims
+## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
+##
+persistence:
+  type: pvc
+  enabled: true
+  storageClassName: efs-sc
+  accessModes:
+    - ReadWriteOnce
+  size: 5Gi
+
+# Use an existing secret for the admin user.
+admin:
+  ## Name of the secret. Can be templated.
+  existingSecret: "grafana-creds"
+  userKey: admin-user
+  passwordKey: admin-password
+
+## Extra environment variables that will be pass onto deployment pods
+##
+## to provide grafana with access to CloudWatch on AWS EKS:
+## 1. create an iam role of type "Web identity" with provider oidc.eks.* (note the provider for later)
+## 2. edit the "Trust relationships" of the role, add a line inside the StringEquals clause using the
+## same oidc eks provider as noted before (same as the existing line)
+## also, replace NAMESPACE and prometheus-operator-grafana with the service account namespace and name
+##
+##  "oidc.eks.us-east-1.amazonaws.com/id/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX:sub": "system:serviceaccount:NAMESPACE:prometheus-operator-grafana",
+##
+## 3. attach a policy to the role, you can use a built in policy called CloudWatchReadOnlyAccess
+## 4. use the following env: (replace 123456789000 and iam-role-name-here with your aws account number and role name)
+##
+## env:
+##   AWS_ROLE_ARN: arn:aws:iam::123456789000:role/iam-role-name-here
+##   AWS_WEB_IDENTITY_TOKEN_FILE: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
+##   AWS_REGION: us-east-1
+##
+## 5. uncomment the EKS section in extraSecretMounts: below
+## 6. uncomment the annotation section in the serviceAccount: above
+## make sure to replace arn:aws:iam::123456789000:role/iam-role-name-here with your role arn
+env:
+  GF_SERVER_ROOT_URL: /grafana
+  GF_SERVER_SERVE_FROM_SUB_PATH: true
